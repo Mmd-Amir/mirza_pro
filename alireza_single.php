@@ -124,7 +124,7 @@ function ResetUserDataUsagealirezasin($usernamepanel, $namepanel){
     $req = new CurlRequest($url);
     $req->setHeaders($headers);
     $req->setCookie(getCookieStoragePath());
-    $response = $req->post($configpanel);
+    $response = $req->post(json_encode([]));
     $cookiePath = getCookieStoragePath();
     if (is_file($cookiePath)) {
         unlink($cookiePath);
@@ -173,13 +173,13 @@ curl_setopt_array($curl, array(
   CURLOPT_COOKIEJAR => getCookieStoragePath(),
 ));
 $response = json_decode(curl_exec($curl),true)['obj'];
-if($response == null)return "offline";
-if(in_array($username,$response))return "online";
-return "offline";
 curl_close($curl);
 $cookiePath = getCookieStoragePath();
 if (is_file($cookiePath)) {
     unlink($cookiePath);
 }
+if($response == null)return "offline";
+if(in_array($username,$response))return "online";
+return "offline";
 
 }

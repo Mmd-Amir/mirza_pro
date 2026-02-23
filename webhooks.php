@@ -118,8 +118,9 @@ elseif(in_array($data['action'],["user_expired","user_limited"])){
         if($data['data_limit_reset_strategy'] == "no_reset"){
         $inbound = explode("*", $panel['inbound_deactive']);
         update("invoice","uuid",json_encode($data['proxies']), "username",$line);
-        $proxies = []; 
-        $proxies[$inbound[0]] = new stdClass();;
+        $proxies = [];
+        $proxies[$inbound[0]] = new stdClass();
+        $inbounds = [];
         $inbounds[$inbound[0]][] = $inbound[1];
         $configs  = array(
             "proxies" => $proxies,

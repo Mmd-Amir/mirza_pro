@@ -266,10 +266,10 @@ curl_setopt_array($curl, array(
 $response = curl_exec($curl);
 if($response == null)return "offline";
 $response = json_decode($response,true)['obj']['user'];
+curl_close($curl);
 if(!is_array($response))return "offline";
 if(in_array($username,$response))return "online";
 return "offline";
-curl_close($curl);
 
 }
 function get_settig($name_panel){
@@ -291,8 +291,8 @@ function get_settig($name_panel){
     $response = curl_exec($curl);
     if($response == null)return [];
     $response = json_decode($response,true)['obj'];
-    if(!is_array($response))return [];
     curl_close($curl);
+    if(!is_array($response))return [];
     return $response;
 
 }

@@ -1350,9 +1350,11 @@ function trnado($order_id, $price)
 
 function formatBytes($bytes, $precision = 2): string
 {
+    if ($bytes <= 0) return '0 بایت';
     $base = log($bytes, 1024);
-    $power = $bytes > 0 ? floor($base) : 0;
+    $power = floor($base);
     $suffixes = ['بایت', 'کیلوبایت', 'مگابایت', 'گیگابایت', 'ترابایت'];
+    $power = min($power, count($suffixes) - 1);
     return round(pow(1024, $base - $power), $precision) . ' ' . $suffixes[$power];
 }
 function generateUsername($from_id, $Metode, $username, $randomString, $text, $namecustome, $usernamecustom)
@@ -1406,17 +1408,16 @@ function outputlunk($text)
     $response = curl_exec($ch);
     if ($response === false) {
         $error = curl_error($ch);
+        curl_close($ch);
         return null;
     } else {
+        curl_close($ch);
         return $response;
     }
-
-    curl_close($ch);
 }
 function outputlunksub($url)
 {
     $ch = curl_init();
-    var_dump($url);
     curl_setopt($ch, CURLOPT_URL, "$url/info");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
@@ -1431,10 +1432,10 @@ function outputlunksub($url)
 
     $result = curl_exec($ch);
     if (curl_errno($ch)) {
-        echo 'Error:' . curl_error($ch);
+        error_log('Error:' . curl_error($ch));
     }
-    return $result;
     curl_close($ch);
+    return $result;
 }
 function normalizeServiceConfigs($configs, $subscriptionUrl = null)
 {
@@ -1510,11 +1511,11 @@ function DirectPayment($order_id, $image = 'images.jpg')
     update("user", "Processing_value_tow", "0", "id", $Balance_id['id']);
     update("user", "Processing_value_four", "0", "id", $Balance_id['id']);
     if ($steppay[0] == "getconfigafterpay") {
-        $stmt = $pdo->prepare("SELECT * FROM invoice WHERE username = '{$steppay[1]}' AND Status = 'unpaid' LIMIT 1");
-        $stmt->execute();
+        $stmt = $pdo->prepare("SELECT * FROM invoice WHERE username = :username AND Status = 'unpaid' LIMIT 1");
+        $stmt->execute([':username' => $steppay[1]]);
         $get_invoice = $stmt->fetch(PDO::FETCH_ASSOC);
-        $stmt = $pdo->prepare("SELECT * FROM product WHERE name_product = '{$get_invoice['name_product']}' AND (Location = '{$get_invoice['Service_location']}'  or Location = '/all')");
-        $stmt->execute();
+        $stmt = $pdo->prepare("SELECT * FROM product WHERE name_product = :name_product AND (Location = :location or Location = '/all')");
+        $stmt->execute([':name_product' => $get_invoice['name_product'], ':location' => $get_invoice['Service_location']]);
         $info_product = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($get_invoice['name_product'] == "🛍 حجم دلخواه" || $get_invoice['name_product'] == "⚙️ سرویس دلخواه") {
             $info_product['data_limit_reset'] = "no_reset";
@@ -1524,8 +1525,8 @@ function DirectPayment($order_id, $image = 'images.jpg')
             $info_product['Service_time'] = $get_invoice['Service_time'];
             $info_product['price_product'] = $get_invoice['price_product'];
         } else {
-            $stmt = $pdo->prepare("SELECT * FROM product WHERE name_product = '{$get_invoice['name_product']}' AND (Location = '{$get_invoice['Service_location']}'  or Location = '/all')");
-            $stmt->execute();
+            $stmt = $pdo->prepare("SELECT * FROM product WHERE name_product = :name_product AND (Location = :location or Location = '/all')");
+            $stmt->execute([':name_product' => $get_invoice['name_product'], ':location' => $get_invoice['Service_location']]);
             $info_product = $stmt->fetch(PDO::FETCH_ASSOC);
         }
         $username_ac = $get_invoice['username'];
@@ -1599,7 +1600,7 @@ function DirectPayment($order_id, $image = 'images.jpg')
             update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $get_invoice['id_invoice']);
         }
         sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $get_invoice['id_invoice'], $get_invoice['id_user'], $image);
-        $partsdic = explode("_", $Balance_id['Processing_value_four'], $get_invoice['id_user']);
+        $partsdic = explode("_", $Balance_id['Processing_value_four']);
         if ($partsdic[0] == "dis") {
             $SellDiscountlimit = select("DiscountSell", "*", "codeDiscount", $partsdic[1], "select");
             $value = intval($SellDiscountlimit['usedDiscount']) + 1;
@@ -1786,8 +1787,8 @@ $textonebuy
             $prodcut['Service_time'] = $service_other['Service_time'];
             $prodcut['Volume_constraint'] = $service_other['volumebuy'];
         } else {
-            $stmt = $pdo->prepare("SELECT * FROM product WHERE (Location = '{$nameloc['Service_location']}' OR Location = '/all') AND (agent = '{$Balance_id['agent']}' OR agent = 'all') AND code_product = '$codeproduct'");
-            $stmt->execute();
+            $stmt = $pdo->prepare("SELECT * FROM product WHERE (Location = :location OR Location = '/all') AND (agent = :agent OR agent = 'all') AND code_product = :code_product");
+            $stmt->execute([':location' => $nameloc['Service_location'], ':agent' => $Balance_id['agent'], ':code_product' => $codeproduct]);
             $prodcut = $stmt->fetch(PDO::FETCH_ASSOC);
         }
         if ($nameloc['name_product'] == "سرویس تست") {
@@ -1855,7 +1856,7 @@ $textonebuy
         if ($Balance_id['agent'] == "f") {
             $valurcashbackextend = select("shopSetting", "*", "Namevalue", "chashbackextend", "select")['value'];
         } else {
-            $valurcashbackextend = json_decode(select("shopSetting", "*", "Namevalue", "chashbackextend_agent", "select")['value'], true)[$Balance_id['agenr']];
+            $valurcashbackextend = json_decode(select("shopSetting", "*", "Namevalue", "chashbackextend_agent", "select")['value'], true)[$Balance_id['agent']];
         }
         if (intval($valurcashbackextend) != 0) {
             $result = ($prodcut['price_product'] * $valurcashbackextend) / 100;
@@ -2148,9 +2149,10 @@ function plisio($order_id, $price)
     $url .= '&api_key=' . urlencode($api_key);
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $response = json_decode(curl_exec($ch), true);
-    return $response['data'];
+    $raw = curl_exec($ch);
     curl_close($ch);
+    $response = json_decode($raw, true);
+    return $response['data'] ?? null;
 }
 function checkConnection($address, $port)
 {
@@ -3125,9 +3127,8 @@ function verifyxvoocher($code)
     ));
 
     $response = curl_exec($curl);
-    return json_decode($response, true);
-
     curl_close($curl);
+    return json_decode($response, true);
 }
 function sanitizeUserName($userName)
 {
@@ -3239,13 +3240,13 @@ function publickey()
 function languagechange($path_dir)
 {
     $setting = select("setting", "*");
-    return json_decode(file_get_contents($path_dir), true)['fa'];
-    if (intval($setting['languageen']) == 1) {
-        return json_decode(file_get_contents($path_dir), true)['en'];
-    } elseif (intval($setting['languageru']) == 1) {
-        return json_decode(file_get_contents($path_dir), true)['ru'];
+    $data = json_decode(file_get_contents($path_dir), true);
+    if (intval($setting['languageen'] ?? 0) == 1) {
+        return $data['en'];
+    } elseif (intval($setting['languageru'] ?? 0) == 1) {
+        return $data['ru'];
     } else {
-        return json_decode(file_get_contents($path_dir), true)['fa'];
+        return $data['fa'];
     }
 }
 function generateAuthStr($length = 10)

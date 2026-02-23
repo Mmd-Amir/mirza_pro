@@ -637,7 +637,10 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $keyboardlists = [
         'inline_keyboard' => [],
     ];
-    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = '$from_id' AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') ORDER BY time_sell DESC LIMIT $start_index, $items_per_page");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = :from_id AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') ORDER BY time_sell DESC LIMIT :start_idx, :per_page");
+    $stmt->bindValue(':from_id', $from_id);
+    $stmt->bindValue(':start_idx', (int)$start_index, PDO::PARAM_INT);
+    $stmt->bindValue(':per_page', (int)$items_per_page, PDO::PARAM_INT);
     $stmt->execute();
     if ($setting['statusnamecustom'] == 'onnamecustom') {
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -762,7 +765,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $keyboardlists = [
         'inline_keyboard' => [],
     ];
-    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = '$from_id' AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') ORDER BY time_sell DESC LIMIT $previous_page, $items_per_page");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_user = '$from_id' AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') ORDER BY time_sell DESC LIMIT $start_index, $items_per_page");
     $stmt->execute();
     if ($setting['statusnamecustom'] == 'onnamecustom') {
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -898,7 +901,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
                 ['text' => $expirationDate, 'callback_data' => 'expirationDate'],
                 ['text' => $textbotlang['users']['stateus']['expirationDate'], 'callback_data' => 'expirationDate'],
             ],
-            [],
             [
                 ['text' => $day, 'callback_data' => 'روز'],
                 ['text' => $textbotlang['users']['stateus']['daysleft'], 'callback_data' => 'day'],
@@ -1134,7 +1136,7 @@ if ($DataUserOut['status'] == "Unsuccessful") {
         $lastupdate = jdate('Y/m/d H:i:s', $dateTime->getTimestamp());
     }
     #--------------[ Percent ]---------------#
-    if ($DataUserOut['data_limit'] != null && $DataUserOut['used_traffic'] != null) {
+    if ($DataUserOut['data_limit'] != null && $DataUserOut['data_limit'] != 0 && $DataUserOut['used_traffic'] != null) {
         $Percent = ($DataUserOut['data_limit'] - $DataUserOut['used_traffic']) * 100 / $DataUserOut['data_limit'];
     } else {
         $Percent = "100";
@@ -2507,7 +2509,7 @@ $stmt->execute([
             step('getprice', $from_id);
             return;
         } else {
-            $valuevolume = intval($volume) / intval($extrapricevalue);
+            $valuevolume = intval($extrapricevalue) != 0 ? intval($volume) / intval($extrapricevalue) : 0;
             if (intval($user['pricediscount']) != 0) {
                 $result = ($volume * $user['pricediscount']) / 100;
                 $volume = $volume - $result;
@@ -2977,7 +2979,7 @@ $stmt->execute([
         $dateTime->setTimezone(new DateTimeZone('Asia/Tehran'));
         $lastupdate = jdate('Y/m/d H:i:s', $dateTime->getTimestamp());
     }
-    if ($DataUserOut['data_limit'] != null && $DataUserOut['used_traffic'] != null) {
+    if ($DataUserOut['data_limit'] != null && $DataUserOut['data_limit'] != 0 && $DataUserOut['used_traffic'] != null) {
         $Percent = ($DataUserOut['data_limit'] - $DataUserOut['used_traffic']) * 100 / $DataUserOut['data_limit'];
     } else {
         $Percent = "100";
@@ -3105,7 +3107,7 @@ $stmt->execute([
             step('getprice', $from_id);
             return;
         } else {
-            $valuetime = $tmieextra / $extratimepricevalue;
+            $valuetime = intval($extratimepricevalue) != 0 ? $tmieextra / $extratimepricevalue : 0;
             if (intval($user['pricediscount']) != 0) {
                 $result = ($tmieextra * $user['pricediscount']) / 100;
                 $pricelasttime = $tmieextra - $result;
@@ -4029,7 +4031,7 @@ $textinvite
                 return;
             }
         }
-        $stmt = $pdo->prepare("SELECT * FROM invoice WHERE status = 'active' AND (status = 'end_of_time' OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold')");
+        $stmt = $pdo->prepare("SELECT * FROM invoice WHERE (status = 'active' OR status = 'end_of_time' OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold')");
         $stmt->execute();
         $countinovoice = $stmt->rowCount();
         if ($locationproduct['limit_panel'] != "unlimited") {
@@ -4075,7 +4077,7 @@ $textinvite
                     sendmessage($from_id, "📌 دسته بندی خود را انتخاب نمایید!", KeyboardCategory($location, $user['agent'], $backuser), 'HTML');
                 }
             } else {
-                $query = "SELECT * FROM product WHERE (Location = '$location' OR Location = '/all') AND agent= '{$user['agent']}'";
+                $query = "SELECT * FROM product WHERE (Location = ".$pdo->quote($location)." OR Location = '/all') AND agent = ".$pdo->quote($user['agent']);
                 $marzban_list_get = select("marzban_panel", "*", "name_panel", $location, "select");
                 $statuscustomvolume = json_decode($marzban_list_get['customvolume'], true)[$user['agent']];
                 if ($marzban_list_get['MethodUsername'] == $textbotlang['users']['customusername'] || $marzban_list_get['MethodUsername'] == "نام کاربری دلخواه + عدد رندوم") {
@@ -4246,7 +4248,7 @@ if (isset($userdate['monthproduct'])) {
         }
         Editmessagetext($from_id, $message_id, "📌 دسته بندی خود را انتخاب نمایید!", KeyboardCategory($marzban_list_get['name_panel'], $user['agent'], $back));
     } else {
-$query = "SELECT * FROM product WHERE (Location = '{$userdate['name_panel']}' OR Location = '/all') AND agent = '{$user['agent']}' AND Service_time = '$monthenumber'";
+$query = "SELECT * FROM product WHERE (Location = ".$pdo->quote($userdate['name_panel'])." OR Location = '/all') AND agent = ".$pdo->quote($user['agent'])." AND Service_time = ".$pdo->quote($monthenumber);
         $marzban_list_get = select("marzban_panel", "*", "name_panel", $userdate['name_panel'], "select");
         $statuscustomvolume = json_decode($marzban_list_get['customvolume'], true)[$user['agent']];
         if ($marzban_list_get['MethodUsername'] == $textbotlang['users']['customusername'] || $marzban_list_get['MethodUsername'] == "نام کاربری دلخواه + عدد رندوم") {
@@ -4387,7 +4389,9 @@ $query = "SELECT * FROM product WHERE (Location = '{$userdate['name_panel']}' OR
         $info_product['Service_time'] = $parts[1];
         $info_product['price_product'] = ($parts[2] * $custompricevalue) + ($parts[1] * $customtimevalueprice);
     } else {
-        $info_product = mysqli_fetch_assoc(mysqli_query($connect, "SELECT * FROM product WHERE code_product = '$loc' AND (Location = '{$userdate['name_panel']}'or Location = '/all') LIMIT 1"));
+        $stmt_prod = $pdo->prepare("SELECT * FROM product WHERE code_product = :code AND (Location = :location or Location = '/all') LIMIT 1");
+        $stmt_prod->execute([':code' => $loc, ':location' => $userdate['name_panel']]);
+        $info_product = $stmt_prod->fetch(PDO::FETCH_ASSOC);
     }
     if (!isset($info_product['price_product'])) {
         sendmessage($from_id, "❌ خطایی در تایید  انجام شده است لطفا مراحل پرداخت را مجددا انجام دهید", $keyboard, 'HTML');
@@ -4433,7 +4437,7 @@ $query = "SELECT * FROM product WHERE (Location = '{$userdate['name_panel']}' OR
         sendmessage($from_id, $textin, $payment, 'HTML');
     }
     step('payment', $from_id);
-} elseif ($user['step'] == "payment" && $datain == "confirmandgetservice" || $datain == "confirmandgetserviceDiscount") {
+} elseif ($user['step'] == "payment" && ($datain == "confirmandgetservice" || $datain == "confirmandgetserviceDiscount")) {
     $userdate = json_decode($user['Processing_value'], true);
     Editmessagetext($from_id, $message_id, $text_inline, json_encode(['inline_keyboard' => []]));
     // $pats for customm service
@@ -5091,9 +5095,11 @@ $textonebuy
         $info_product['price_product'] = ($parts[2] * $custompricevalue) + ($parts[1] * $customtimevalueprice);
         $info_product['data_limit_reset'] = "no_reset";
     } else {
-        $info_product = mysqli_fetch_assoc(mysqli_query($connect, "SELECT * FROM product WHERE code_product = '{$user['Processing_value_one']}' AND (Location = '{$user['Processing_value']}'  or Location = '/all') LIMIT 1"));
+        $stmt_prod = $pdo->prepare("SELECT * FROM product WHERE code_product = :code AND (Location = :location or Location = '/all') LIMIT 1");
+        $stmt_prod->execute([':code' => $user['Processing_value_one'], ':location' => $user['Processing_value']]);
+        $info_product = $stmt_prod->fetch(PDO::FETCH_ASSOC);
     }
-    if (empty($info_product['price_product']) || empty($info_product['price_product']))
+    if (empty($info_product['price_product']))
         return;
     $priceproduct = $info_product['price_product'] * $user['Processing_value_four'];
     Editmessagetext($from_id, $message_id, $text_inline, null);
@@ -7597,7 +7603,7 @@ $text_porsant
         $previous_page = $page - 1;
     }
     $start_index = ($previous_page - 1) * $items_per_page;
-    $result = mysqli_query($connect, "SELECT * FROM invoice WHERE id_user = '$from_id' AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') ORDER BY time_sell DESC LIMIT $previous_page, $items_per_page");
+    $result = mysqli_query($connect, "SELECT * FROM invoice WHERE id_user = '$from_id' AND (status = 'active' OR status = 'end_of_time'  OR status = 'end_of_volume' OR status = 'sendedwarn' OR status = 'send_on_hold') ORDER BY time_sell DESC LIMIT $start_index, $items_per_page");
     $keyboardlists = [
         'inline_keyboard' => [],
     ];

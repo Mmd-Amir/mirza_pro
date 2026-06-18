@@ -286,11 +286,12 @@ curl_setopt_array($curl, array(
   CURLOPT_COOKIEFILE => 'cookie.txt',
 ));
 $response = json_decode(curl_exec($curl),true);
+curl_close($curl);
+$cookiePath = 'cookie.txt';
+if (is_file($cookiePath)) unlink($cookiePath);
 if($response == null)return "offline";
 if(in_array($user['email'],$response))return "online";
 return "offline";
-curl_close($curl);
-unlink('cookie.txt');
 
 }
 function extendalireza($Metode,$namepanel,$usernamepanel,$Service_time,$data_limit = null){

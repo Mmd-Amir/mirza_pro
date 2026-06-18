@@ -32,7 +32,7 @@ function token_panelm($code_panel){
     $token = curl_exec($curl_token);
     if (curl_error($curl_token)) {
         $token = [];
-        $token['errror'] = curl_error($curl_token);
+        $token['error'] = curl_error($curl_token);
         return $token;
     }
     curl_close($curl_token);

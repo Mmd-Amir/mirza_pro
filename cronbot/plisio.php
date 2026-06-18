@@ -41,8 +41,8 @@ $url .= '&search='.$tx_id;
 $ch = curl_init($url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 $response = curl_exec($ch);
-return json_decode($response,true);
 curl_close($ch);
+return json_decode($response,true);
 
 }
 $list_service = mysqli_query($connect, "SELECT * FROM Payment_report WHERE payment_Status = 'Unpaid' AND Payment_Method = 'plisio'");

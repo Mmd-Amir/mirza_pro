@@ -26,10 +26,10 @@ $stmt->execute();
             $timebuyremin = (time() - $resultss['time_sell'])/86400;
         if ($timebuyremin >= $setting['on_hold_day']) {
         $sql = "SELECT * FROM service_other WHERE username = :username  AND type = 'change_location'";
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindParam(':username', $line ,PDO::PARAM_STR);
-        $stmt->execute();
-        $service_other = $stmt->rowCount();
+        $stmt_update = $pdo->prepare($sql);
+        $stmt_update->bindParam(':username', $line ,PDO::PARAM_STR);
+        $stmt_update->execute();
+        $service_other = $stmt_update->rowCount();
         if($service_other != 0)continue;
                 $text = "سلام! 🌐
 
